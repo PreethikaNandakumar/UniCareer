@@ -139,7 +139,7 @@ const UniCareerAPI = (() => {
     requirementsForCareer,
     // Constants
     SPREADSHEET_ID,
-    API_URL,
+    const API_URL = "https://script.google.com/macros/s/AKfycbxomdaH6dyiXm1VZ_S4sItCA4ojOwFO0y6zMcOIM1jqsPXby31pT_4Hoakj0ab4_1Ka/exec"; 
   };
 })();
 

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniCareer — Complete Your Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .wrap{max-width:760px;margin:0 auto;padding:48px 20px 96px;}
+  .wrap h1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:32px;margin:0 0 4px;}
+  .wrap p.lead{color:var(--color-text-muted);margin:0 0 32px;}
+  .section-block{margin-bottom:32px;}
+  .mini-label{font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:block;}
+  .subject-select{width:100%;padding:11px 14px;font-size:14px;border:1.5px solid var(--color-border);border-radius:8px;outline:none;background:#fff;color:var(--color-text);transition:border-color .2s;}
+  .subject-select:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+  .auto-skills{font-size:12px;color:var(--color-primary);margin-top:4px;font-weight:500;}
+</style>
+</head>
+<body>
+
+<header class="topnav">
+  <div class="container">
+    <a href="/index.html" class="brand" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;">UniCareer</a>
+    <span id="hello" style="font-size:14px;color:var(--color-text-muted);"></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1>Complete Your Profile</h1>
+  <p class="lead">Enter your completed subjects, current skills, projects, and career interests. UniCareer will <strong>automatically</strong> compute your skills, career matches, skill gaps, and roadmap — you don't fill those in.</p>
+
+  <div class="stepper">
+    <div class="dot done"></div><div class="dot done"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+
+  <div class="auth-msg" id="form-msg"></div>
+
+  <form id="profile-form" onsubmit="return handleSave(event)">
+
+    <!-- Academic -->
+    <div class="form-card section-block">
+      <h3>🎓 Academic Journey</h3>
+      <p class="desc">Select subjects you've completed. UniCareer auto-fills the skills each subject gave you.</p>
+      <div id="subjects-list"></div>
+      <button type="button" class="add-row-btn" onclick="addSubjectRow()">+ Add completed subject</button>
+    </div>
+
+    <!-- Current skills -->
+    <div class="form-card section-block">
+      <h3>🧠 Current Skills &amp; Levels</h3>
+      <p class="desc">Skills you already have (beyond what subjects gave you), with a self-rated proficiency level (0–100).</p>
+      <div id="skills-list"></div>
+      <button type="button" class="add-row-btn" onclick="addSkillRow()">+ Add skill</button>
+    </div>
+
+    <!-- Projects -->
+    <div class="form-card section-block">
+      <h3>🛠️ Projects</h3>
+      <p class="desc">Academic or personal projects and what they demonstrate.</p>
+      <div id="projects-list"></div>
+      <button type="button" class="add-row-btn" onclick="addProjectRow()">+ Add project</button>
+    </div>
+
+    <!-- Career interests -->
+    <div class="form-card section-block">
+      <h3>🎯 Career Interests</h3>
+      <p class="desc">Roles or industries you'd like to explore (comma separated). UniCareer prioritizes these in your matches.</p>
+      <div class="form-group">
+        <input class="form-control" id="career-interests" placeholder="Business Analyst, Data Analyst, Product Management">
+      </div>
+    </div>
+
+    <!-- Auto-computed preview -->
+    <div class="auto-panel section-block">
+      <h3>📊 Auto-Computed Results</h3>
+      <p class="desc">These are calculated automatically from your subjects + skills. Click the button to preview before saving.</p>
+      <button type="button" class="compute-btn" onclick="previewComputation()">⚡ Compute My Results</button>
+      <div id="auto-preview" style="margin-top:16px;"></div>
+    </div>
+
+    <div class="form-actions">
+      <a href="/dashboard.html" class="btn btn-outline">Skip for now</a>
+      <button type="submit" class="btn btn-primary btn-lg" id="save-btn">Save Profile &amp; View Dashboard</button>
+    </div>
+  </form>
+</div>
+
+<div class="loading-overlay" id="loading">Saving…</div>
+<script src="/api.js"></script>
+<script>
+const email = UniCareerAPI.currentEmail();
+if(!email){ window.location.href = '/login.html'; }
+document.getElementById('hello').textContent = sessionStorage.getItem('uc_name') ? ('Hi, ' + sessionStorage.getItem('uc_name')) : '';
+
+const ALL_SUBJECTS = UniCareerAPI.listAllSubjects();
+const ALL_CAREERS = UniCareerAPI.listAllCareers();
+
+/* ---------- repeatable-row helpers ---------- */
+function rowShell(id, innerHtml){
+  const div = document.createElement('div');
+  div.className = 'repeat-row';
+  div.id = id;
+  div.innerHTML = innerHtml + '<button type="button" class="icon-btn" onclick="document.getElementById(\'' + id + '\').remove();updateSubjectSkills(\'#'+id+'\')">✕</button>';
+  return div;
+}
+let rowCounter = 0;
+function nextId(prefix){ rowCounter++; return prefix + rowCounter; }
+
+function addSubjectRow(v){
+  v = v || {};
+  const id = nextId('subj-');
+  const opts = ALL_SUBJECTS.map(s => '<option value="'+s+'"'+(v.subject===s?' selected':'')+'>'+s+'</option>').join('');
+  document.getElementById('subjects-list').appendChild(rowShell(id, `
+    <div class="form-group" style="grid-column:span 3;">
+      <label>Subject name</label>
+      <select class="subject-select" data-f="subject" onchange="updateSubjectSkills('#${id}')">
+        <option value="">— Select a subject —</option>${opts}
+      </select>
+      <div class="auto-skills" data-skills></div>
+    </div>
+  `));
+  if(v.subject) updateSubjectSkills('#'+id);
+}
+
+function updateSubjectSkills(selector){
+  const row = document.querySelector(selector);
+  if(!row) return;
+  const sel = row.querySelector('[data-f="subject"]');
+  const out = row.querySelector('[data-skills]');
+  if(sel && sel.value){
+    const skills = UniCareerAPI.skillsForSubject(sel.value);
+    if(out) out.textContent = '✓ Auto-skills: ' + skills.map(s => s.skill + ' ('+s.level+'%)').join(', ');
+  } else {
+    if(out) out.textContent = '';
+  }
+}
+
+function addSkillRow(v){
+  v = v || {};
+  const id = nextId('skill-');
+  document.getElementById('skills-list').appendChild(rowShell(id, `
+    <div class="form-group"><label>Skill</label><input class="form-control" data-f="skill" value="${v.skill||''}" placeholder="SQL"></div>
+    <div class="form-group"><label>Level (0-100)</label><input class="form-control" type="number" min="0" max="100" data-f="level" value="${v.level!=null?v.level:70}"></div>
+    <div class="form-group"><label>Category</label><input class="form-control" data-f="category" value="${v.category||''}" placeholder="Technical"></div>
+  `));
+}
+
+function addProjectRow(v){
+  v = v || {};
+  const id = nextId('proj-');
+  document.getElementById('projects-list').appendChild(rowShell(id, `
+    <div class="form-group"><label>Project name</label><input class="form-control" data-f="name" value="${v.name||''}" placeholder="Library Management System"></div>
+    <div class="form-group"><label>Description</label><input class="form-control" data-f="description" value="${v.description||''}" placeholder="Short summary"></div>
+    <div class="form-group"><label>Skills used</label><input class="form-control" data-f="skills" value="${v.skills||''}" placeholder="Java, MySQL"></div>
+  `));
+}
+
+// start with one blank row per section
+addSubjectRow(); addSkillRow(); addProjectRow();
+
+/* ---------- collect ---------- */
+function collect(listId){
+  const rows = document.querySelectorAll('#' + listId + ' .repeat-row');
+  const out = [];
+  rows.forEach(row => {
+    const obj = {};
+    let hasValue = false;
+    row.querySelectorAll('[data-f]').forEach(inp => {
+      obj[inp.dataset.f] = inp.value.trim();
+      if(inp.value.trim()) hasValue = true;
+    });
+    if(hasValue) out.push(obj);
+  });
+  return out;
+}
+
+/* ---------- preview computation ---------- */
+function previewComputation(){
+  const completedSubjects = collect('subjects-list');
+  const currentSkills = collect('skills-list');
+  const careerInterests = document.getElementById('career-interests').value.split(',').map(s=>s.trim()).filter(Boolean);
+
+  const studentData = {
+    email: email,
+    completedSubjects: completedSubjects,
+    currentSkills: currentSkills,
+    careerInterests: careerInterests
+  };
+
+  const result = UniCareerAPI.computeStudentProfile(studentData);
+  const matches = result.careerMatches || [];
+  const gaps = result.skillGaps || [];
+  const roadmap = result.learningRoadmap || [];
+
+  let html = '<div style="margin-top:12px;">';
+
+  // Career matches
+  html += '<span class="mini-label">Career Matches (auto-computed)</span>';
+  if(matches.length){
+    matches.forEach(function(m){
+      html += '<div class="auto-item"><div class="left"><span class="ic">💼</span><div><h4>'+esc(m.career)+'</h4><p>'+esc(m.note)+'</p></div></div><div class="right"><span class="match-pct">'+m.match+'%</span></div></div>';
+    });
+  } else {
+    html += '<div class="auto-empty">Add subjects or skills to see matches.</div>';
+  }
+
+  // Skill gaps
+  html += '<span class="mini-label" style="margin-top:16px;">Skill Gaps (auto-computed for '+esc(result.bestCareer||'top career')+')</span>';
+  if(gaps.length){
+    gaps.forEach(function(g){
+      html += '<div class="auto-item"><div class="left"><span class="ic">⚠️</span><div><h4>'+esc(g.skill)+'</h4><p>'+esc(g.note)+'</p></div></div><div class="right"><span class="priority-tag '+g.priority.toLowerCase()+'">'+g.priority+'</span></div></div>';
+    });
+  } else {
+    html += '<div class="auto-empty">No skill gaps — you meet all requirements!</div>';
+  }
+
+  // Roadmap
+  html += '<span class="mini-label" style="margin-top:16px;">Learning Roadmap (Learn → Practice → Build)</span>';
+  if(roadmap.length){
+    roadmap.forEach(function(r){
+      html += '<div class="auto-item"><div class="left"><span class="ic">📖</span><div><h4>'+esc(r.skill)+' — '+esc(r.stage)+'</h4><p>'+esc(r.step)+'</p></div></div><div class="right"><span class="stage-tag">'+esc(r.priority)+'</span></div></div>';
+    });
+  } else {
+    html += '<div class="auto-empty">No roadmap needed — no gaps detected.</div>';
+  }
+
+  html += '</div>';
+  document.getElementById('auto-preview').innerHTML = html;
+}
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+/* ---------- save ---------- */
+async function handleSave(e){
+  e.preventDefault();
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  document.getElementById('loading').classList.add('show');
+
+  const completedSubjects = collect('subjects-list');
+  const currentSkills = collect('skills-list');
+  const projects = collect('projects-list');
+  const careerInterests = document.getElementById('career-interests').value.split(',').map(s=>s.trim()).filter(Boolean);
+
+  // Compute everything locally
+  const studentData = {
+    email: email,
+    studentName: sessionStorage.getItem('uc_name') || '',
+    completedSubjects: completedSubjects,
+    currentSkills: currentSkills,
+    projects: projects,
+    careerInterests: careerInterests
+  };
+
+  const computed = UniCareerAPI.computeStudentProfile(studentData);
+
+  // Build the full payload with auto-computed fields
+  const payload = Object.assign({}, computed, {
+    roadmapProgress: 0
+  });
+
+  try{
+    await UniCareerAPI.saveStudent(payload);
+    window.location.href = '/dashboard.html';
+  }catch(err){
+    document.getElementById('loading').classList.remove('show');
+    btn.disabled = false;
+    const el = document.getElementById('form-msg');
+    el.textContent = err.message;
+    el.className = 'auth-msg error';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  return false;
+}
+</script>
+</body>
+</html>

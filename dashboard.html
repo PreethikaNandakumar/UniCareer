@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniCareer — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <h1>Student Portal</h1>
+      <p>Career Readiness</p>
+    </div>
+    <nav>
+      <a href="/dashboard.html" class="active"><span class="ic">🏠</span>Dashboard</a>
+      <a href="/profile-setup.html"><span class="ic">👤</span>Profile</a>
+      <a href="/dashboard.html#academic"><span class="ic">🎓</span>Academic Journey</a>
+      <a href="/dashboard.html#skills"><span class="ic">🧠</span>Skills</a>
+      <a href="/dashboard.html#projects"><span class="ic">🛠️</span>Projects</a>
+      <a href="/dashboard.html#matches"><span class="ic">🧭</span>Career Explorer</a>
+      <a href="/dashboard.html#matches"><span class="ic">📊</span>Career Analysis</a>
+      <a href="/dashboard.html#gaps"><span class="ic">📈</span>Skill Gaps</a>
+      <a href="/dashboard.html#roadmap"><span class="ic">🗺️</span>Roadmap</a>
+      <a href="/dashboard.html#roadmap"><span class="ic">🚀</span>Progress</a>
+      <a href="#" onclick="logout();return false;"><span class="ic">⚙️</span>Settings / Logout</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="avatar-circle" id="avatar-initial">S</div>
+      <div>
+        <div class="name" id="side-name">Student</div>
+        <div class="role">Student</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="main-topbar">🔔</div>
+
+    <div class="main-canvas">
+      <div id="empty-state" style="display:none;text-align:center;padding:64px 0;">
+        <p style="font-size:18px;color:var(--color-text-muted);">We couldn't find a profile for this account.</p>
+        <a href="/profile-setup.html" class="btn btn-primary" style="margin-top:12px;">Complete Your Profile</a>
+      </div>
+
+      <div id="dash-content" style="display:none;">
+        <div class="page-head">
+          <h2 id="greeting">Good morning 👋</h2>
+          <p id="degree-line">—</p>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🎓</div>
+            <div class="stat-label">Completed Subjects</div>
+            <div class="stat-value" id="stat-subjects">0</div>
+            <div class="track"><div class="fill" id="stat-subjects-fill" style="width:0%"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🧩</div>
+            <div class="stat-label">Skills Identified</div>
+            <div class="stat-value" id="stat-skills">0</div>
+            <div class="pill-row" id="stat-skills-pills"></div>
+          </div>
+          <div class="stat-card">
+            <div class="ring-wrap">
+              <div class="stat-label">Career Readiness</div>
+              <div class="stat-value" id="stat-readiness" style="font-size:32px;color:var(--color-primary);">0%</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-label">Active Skill Gaps</div>
+            <div class="stat-value" id="stat-gaps">0</div>
+            <div class="stat-note" id="stat-gaps-note">No gaps logged yet.</div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <div class="col-gap">
+            <div class="subsection" id="matches">
+              <h3>Best Career Matches</h3>
+              <div class="list-gap" id="matches-list"></div>
+            </div>
+
+            <div class="two-col" id="skills">
+              <div class="subsection">
+                <h3>Top Skills</h3>
+                <div class="glass-card" id="skills-card"></div>
+              </div>
+              <div class="subsection" id="gaps">
+                <h3>Priority Gaps</h3>
+                <div class="glass-card" id="gaps-card"></div>
+              </div>
+            </div>
+
+            <div class="subsection" id="academic">
+              <h3>Academic Journey</h3>
+              <div class="glass-card" id="subjects-card"></div>
+            </div>
+
+            <div class="subsection" id="projects">
+              <h3>Projects</h3>
+              <div class="glass-card" id="projects-card"></div>
+            </div>
+          </div>
+
+          <div class="col-gap">
+            <div class="subsection">
+              <h3>Next Steps</h3>
+              <div class="glass-card" style="padding:5px;" id="next-steps-card"></div>
+            </div>
+
+            <div class="subsection" id="roadmap">
+              <h3>Roadmap &amp; Progress</h3>
+              <div class="glass-card">
+                <div class="skill-item">
+                  <div class="top"><span class="name">Overall Progress</span><span class="pct" id="roadmap-pct">0%</span></div>
+                  <div class="track"><div class="fill" id="roadmap-fill" style="width:0%"></div></div>
+                </div>
+                <div class="timeline" id="roadmap-timeline" style="margin-top:24px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay show" id="loading">Loading your dashboard…</div>
+<script src="/api.js"></script>
+<script>
+function logout(){ UniCareerAPI.clearSession(); window.location.href = '/index.html'; }
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+(async function init(){
+  const email = UniCareerAPI.currentEmail();
+  if(!email){ window.location.href = '/login.html'; return; }
+  try{
+    const s = await UniCareerAPI.getStudent(email);
+    document.getElementById('loading').classList.remove('show');
+    if(!s){ document.getElementById('empty-state').style.display = 'block'; return; }
+
+    // Recompute in case the stored data is stale (e.g. subjects changed)
+    const recomputed = UniCareerAPI.computeStudentProfile(s);
+    render(recomputed);
+  }catch(err){
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('empty-state').querySelector('p').textContent = err.message;
+  }
+})();
+
+function render(s){
+  document.getElementById('dash-content').style.display = 'block';
+  const name = s.studentName || 'Student';
+  document.getElementById('greeting').textContent = 'Good to see you, ' + name + ' 👋';
+  document.getElementById('degree-line').textContent = (s.degree || 'Degree') + ' • ' + (s.currentSemester || '') + ' — ' + (s.university || '');
+  document.getElementById('side-name').textContent = name;
+  document.getElementById('avatar-initial').textContent = name.charAt(0).toUpperCase();
+
+  // subjects
+  const subjects = s.completedSubjects || [];
+  document.getElementById('stat-subjects').textContent = subjects.length;
+  document.getElementById('stat-subjects-fill').style.width = Math.min(100, subjects.length / 8 * 100) + '%';
+  document.getElementById('subjects-card').innerHTML = subjects.length ? subjects.map(function(sub){
+    return '<div class="skill-item"><div class="top"><span class="name">'+esc(sub.subject)+'</span><span class="pct">'+esc(sub.code||'')+'</span></div><p style="margin:0;font-size:13px;color:var(--color-text-muted-2);">Skills gained: '+esc(sub.skills||'—')+'</p></div>';
+  }).join('') : '<p style="color:var(--color-text-muted-2);margin:0;">No subjects logged yet.</p>';
+
+  // skills
+  const skills = s.currentSkills || [];
+  document.getElementById('stat-skills').textContent = skills.length;
+  document.getElementById('stat-skills-pills').innerHTML = skills.slice(0,4).map(function(k){ return '<span class="pill">'+esc((k.skill||'').slice(0,3))+'</span>'; }).join('')
+    + (skills.length>4 ? '<span class="pill">+'+(skills.length-4)+'</span>' : '');
+  document.getElementById('skills-card').innerHTML = skills.length ? skills.slice(0,6).map(function(k){
+    return '<div class="skill-item"><div class="top"><span class="name">'+esc(k.skill)+'</span><span class="pct">'+esc(k.level||0)+'%</span></div><div class="track"><div class="fill" style="width:'+(k.level||0)+'%"></div></div></div>';
+  }).join('') : '<p style="color:var(--color-text-muted-2);margin:0;">No skills logged yet.</p>';
+
+  // career matches (auto-computed)
+  const matches = s.careerMatches || [];
+  const readiness = s.careerReadiness || (matches.length ? Math.round(matches.reduce(function(a,m){return a+(Number(m.match)||0)},0)/matches.length) : 0);
+  document.getElementById('stat-readiness').textContent = readiness + '%';
+  document.getElementById('matches-list').innerHTML = matches.length ? matches.map(function(m){
+    return '<div class="glass-card match-row"><div><h4>'+esc(m.career)+'</h4><div class="sub">'+esc(m.note||'')+'</div></div><div class="match-meter"><div class="track"><div class="fill" style="width:'+(m.match||0)+'%"></div></div><span style="font-size:14px;color:var(--color-primary);font-weight:500;">'+(m.match||0)+'% Match</span></div></div>';
+  }).join('') : '<p style="color:var(--color-text-muted-2);margin:0;">No career matches yet. Complete your profile to see matches.</p>';
+
+  // skill gaps (auto-computed)
+  const gaps = s.skillGaps || [];
+  document.getElementById('stat-gaps').textContent = gaps.length;
+  document.getElementById('stat-gaps-note').textContent = gaps.length ? 'Top priority: ' + gaps[0].skill : 'No gaps detected.';
+  document.getElementById('gaps-card').innerHTML = gaps.length ? gaps.map(function(g){
+    return '<div class="gap-item '+((g.priority||'').toLowerCase()==='high'?'high':'med')+'"><div>'+((g.priority||'').toLowerCase()==='high'?'⚠️':'📎')+'</div><div><h4>'+esc(g.skill)+'</h4><p>'+esc(g.note||g.priority||'')+'</p></div></div>';
+  }).join('') : '<p style="color:var(--color-text-muted-2);margin:0;">No skill gaps detected — you meet all requirements!</p>';
+
+  // projects
+  const projects = s.projects || [];
+  document.getElementById('projects-card').innerHTML = projects.length ? projects.map(function(p){
+    return '<div class="skill-item"><div class="top"><span class="name">'+esc(p.name)+'</span></div><p style="margin:0;font-size:13px;color:var(--color-text-muted-2);">'+esc(p.description||'')+(p.skills? ' • '+esc(p.skills):'')+'</p></div>';
+  }).join('') : '<p style="color:var(--color-text-muted-2);margin:0;">No projects logged yet.</p>';
+
+  // roadmap / next steps (auto-computed)
+  const roadmap = s.learningRoadmap || [];
+  var icon = {Learn:'📖', Practice:'🧪', Build:'🏗️'};
+  document.getElementById('next-steps-card').innerHTML = roadmap.length ? roadmap.slice(0,3).map(function(r,i){
+    return '<div class="step-link"><span class="ic">'+(icon[r.stage]||'✅')+'</span><div class="body"><h4>'+esc(r.stage)+'</h4><p>'+esc(r.step)+'</p></div><span>→</span></div>'+(i < Math.min(roadmap.length,3)-1 ? '<div class="divider"></div>' : '');
+  }).join('') : '<p style="padding:16px;color:var(--color-text-muted-2);margin:0;">No roadmap steps yet.</p>';
+
+  document.getElementById('roadmap-timeline').innerHTML = roadmap.length ? roadmap.map(function(r){
+    return '<div class="t-item '+(r.status==='In Progress'?'active':'')+'"><h4>'+esc(r.step)+' <span style="font-weight:400;color:var(--color-text-muted-2);">('+esc(r.stage)+')</span></h4><p>'+esc(r.status||'Upcoming')+'</p></div>';
+  }).join('') : '<p style="color:var(--color-text-muted-2);margin:0;">No roadmap yet.</p>';
+
+  var progress = Number(s.roadmapProgress) || 0;
+  document.getElementById('roadmap-pct').textContent = progress + '%';
+  document.getElementById('roadmap-fill').style.width = progress + '%';
+}
+</script>
+</body>
+</html>

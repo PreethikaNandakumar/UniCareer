@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniCareer — Login / Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="topnav">
+  <div class="container">
+    <a href="/index.html" class="brand" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;">UniCareer</a>
+    <a href="/index.html" style="font-size:14px;color:var(--color-text-muted);">← Back to Home</a>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab" id="tab-login" onclick="showTab('login')">Login</button>
+      <button class="auth-tab" id="tab-register" onclick="showTab('register')">Register</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-body" id="panel-login">
+      <h1>Welcome Back</h1>
+      <p class="sub">Continue your career journey</p>
+      <div class="auth-msg" id="login-msg"></div>
+      <form id="login-form" onsubmit="return handleLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input class="form-control" type="email" id="login-email" placeholder="student@university.edu" required>
+        </div>
+        <div class="form-group">
+          <div class="form-row"><label style="margin:0;">Password</label><a href="#">Forgot password?</a></div>
+          <input class="form-control" type="password" id="login-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Login →</button>
+        <p class="foot-link">Don't have an account? <a href="#" onclick="showTab('register');return false;">Register</a></p>
+      </form>
+      <p class="foot-link" style="margin-top:16px;color:#acb0ce;">Prototype note: password isn't verified — this demo looks students up by email only.</p>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="auth-body" id="panel-register" style="display:none;">
+      <h1>Create Account</h1>
+      <p class="sub">Start mapping your academic journey to a career</p>
+      <div class="auth-msg" id="register-msg"></div>
+      <form id="register-form" onsubmit="return handleRegister(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input class="form-control" type="text" id="reg-name" placeholder="Preethi Fernando" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input class="form-control" type="email" id="reg-email" placeholder="student@university.edu" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input class="form-control" type="password" id="reg-password" placeholder="Create a password" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label>University</label>
+          <input class="form-control" type="text" id="reg-university" placeholder="University of Colombo" required>
+        </div>
+        <div class="form-group">
+          <label>Degree Programme</label>
+          <input class="form-control" type="text" id="reg-degree" placeholder="BSc Information Systems" required>
+        </div>
+        <div class="form-group">
+          <label>Current Semester</label>
+          <select class="form-control" id="reg-semester" required>
+            <option value="">Select semester</option>
+            <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option>
+            <option>Semester 4</option><option>Semester 5</option><option>Semester 6</option>
+            <option>Semester 7</option><option>Semester 8</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="reg-submit-btn">Create Account →</button>
+        <p class="foot-link">Already have an account? <a href="#" onclick="showTab('login');return false;">Login</a></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="brand">UniCareer</div>
+    <nav>
+      <a href="/index.html">Home</a><a href="/index.html#how-it-works">How It Works</a>
+      <a href="/index.html#features">Features</a><a href="#">Careers</a><a href="#">About</a><a href="#">Support</a>
+    </nav>
+    <div class="tag">© 2026 UniCareer. Empowering the next generation of professionals.</div>
+  </div>
+</footer>
+
+<div class="loading-overlay" id="loading">Working…</div>
+<script src="/api.js"></script>
+<script>
+function showTab(which){
+  document.getElementById('tab-login').classList.toggle('active', which==='login');
+  document.getElementById('tab-register').classList.toggle('active', which==='register');
+  document.getElementById('panel-login').style.display = which==='login' ? 'block' : 'none';
+  document.getElementById('panel-register').style.display = which==='register' ? 'block' : 'none';
+}
+const params = new URLSearchParams(window.location.search);
+showTab(params.get('tab') === 'register' ? 'register' : 'login');
+
+function setMsg(id, text, type){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'auth-msg ' + (type || 'error');
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  document.getElementById('loading').classList.add('show');
+  try{
+    const student = await UniCareerAPI.getStudent(email);
+    document.getElementById('loading').classList.remove('show');
+    if(!student){
+      setMsg('login-msg', "We couldn't find an account for that email. Try registering instead.", 'error');
+      return false;
+    }
+    UniCareerAPI.setSession(email, student.studentName);
+    window.location.href = '/dashboard.html';
+  }catch(err){
+    document.getElementById('loading').classList.remove('show');
+    setMsg('login-msg', err.message, 'error');
+  }
+  return false;
+}
+
+async function handleRegister(e){
+  e.preventDefault();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const payload = {
+    studentName: document.getElementById('reg-name').value.trim(),
+    email: email,
+    university: document.getElementById('reg-university').value.trim(),
+    degree: document.getElementById('reg-degree').value.trim(),
+    currentSemester: document.getElementById('reg-semester').value,
+    completedSubjects: [],
+    currentSkills: [],
+    projects: [],
+    careerInterests: [],
+    careerMatches: [],
+    skillGaps: [],
+    learningRoadmap: [],
+    roadmapProgress: 0
+  };
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('reg-submit-btn').disabled = true;
+  try{
+    await UniCareerAPI.saveStudent(payload);
+    UniCareerAPI.setSession(email, payload.studentName);
+    window.location.href = '/profile-setup.html';
+  }catch(err){
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('reg-submit-btn').disabled = false;
+    setMsg('register-msg', err.message, 'error');
+  }
+  return false;
+}
+</script>
+</body>
+</html>

@@ -19,4 +19,4 @@ Design: Figma
 # UniCareer  Project
 
 - *Live Website:*  https://uni-career.vercel.app/index.html
-- *Google Sheets Database:*  "https://script.google.com/macros/s/AKfycbxomdaH6dyiXm1VZ_S4sItCA4ojOwFO0y6zMcOIM1jqsPXby31pT_4Hoakj0ab4_1Ka/exec"
+

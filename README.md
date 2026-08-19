@@ -15,3 +15,8 @@ Frontend: React, JavaScript, CSS
 Backend: Google Apps Script
 Database: Google Sheets
 Design: Figma
+
+# UniCareer  Project
+
+- *Live Website:*  https://uni-career.vercel.app/index.html
+- *Google Sheets Database:*  https://docs.google.com/spreadsheets/d/1ld8Aszm-wY6P9okvN9niNZjGgECWyO_sin9hNYuIJC4/edit?usp=sharing
